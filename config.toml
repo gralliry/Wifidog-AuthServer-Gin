@@ -1,0 +1,11 @@
+Port = "8003"
+Path = "/wifidog/"
+LoginScriptPathFragment = "login/?"
+PortalScriptPathFragment = "portal/?"
+MsgScriptPathFragment = "gw_message.php?"
+PingScriptPathFragment = "ping/?"
+AuthScriptPathFragment = "auth/?"
+
+GWAddress = "10.0.0.1"
+GWPort = "2060"
+GWId = "64644ADFE3CE"

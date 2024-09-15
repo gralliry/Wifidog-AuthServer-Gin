@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/BurntSushi/toml"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
@@ -25,20 +26,29 @@ AuthScriptPathFragment    (Optional; Default: auth/?          Note:  This is the
 */
 
 // Path 定义全局变量
-const Path string = "/wifidog/"
-const LoginScriptPathFragment string = "login/?"
-const PortalScriptPathFragment string = "portal/?"
-const MsgScriptPathFragment string = "gw_message.php?"
-const PingScriptPathFragment string = "ping/?"
-const AuthScriptPathFragment string = "auth/?"
 
-const GWAddress = "10.0.0.1"
-const GWPort = "2060"
-const GWId = "64644ADFE3CE"
-
-const Port = "8003"
+type Config struct {
+	// 认证服务器
+	Port                     string
+	Path                     string
+	LoginScriptPathFragment  string
+	PortalScriptPathFragment string
+	MsgScriptPathFragment    string
+	PingScriptPathFragment   string
+	AuthScriptPathFragment   string
+	// 网关
+	GWAddress string
+	GWPort    string
+	GWId      string
+}
 
 func main() {
+	var conf Config
+	_, err := toml.DecodeFile("config.toml", &conf)
+	if err != nil {
+		fmt.Println("配置读取失败")
+		return
+	}
 	// 创建一个默认的 Gin 引擎
 	r := gin.Default()
 	// 设置模板文件的路径
@@ -59,13 +69,13 @@ func main() {
 	}(db)
 
 	// 面向user，登录页面
-	var pathLoginGet = Path + LoginScriptPathFragment
+	var pathLoginGet = conf.Path + conf.LoginScriptPathFragment
 	r.GET(pathLoginGet[:len(pathLoginGet)-1], func(c *gin.Context) {
 		gwAddress := c.Query("gw_address")
 		gwPort := c.Query("gw_port")
 		gwId := c.Query("gw_id")
-		if gwAddress != GWAddress || gwPort != GWPort || gwId != GWId {
-			c.String(http.StatusBadRequest, fmt.Sprintf("当前页面(%s, %s, %s)不属于你处在的认证网络(%s, %s, %s)", gwAddress, gwPort, gwId, GWAddress, GWPort, GWId))
+		if gwAddress != conf.GWAddress || gwPort != conf.GWPort || gwId != conf.GWId {
+			c.String(http.StatusBadRequest, fmt.Sprintf("当前页面(%s, %s, %s)不属于你处在的认证网络(%s, %s, %s)", conf.GWAddress, gwPort, gwId, conf.GWAddress, conf.GWPort, conf.GWId))
 			return
 		}
 		c.HTML(http.StatusOK, "login.html", gin.H{})
@@ -83,8 +93,8 @@ func main() {
 		ip := c.Query("ip")
 		mac := c.Query("mac")
 		//url := c.Query("url")
-		if gwAddress != GWAddress || gwPort != GWPort || gwId != GWId {
-			c.String(http.StatusBadRequest, fmt.Sprintf("当前页面(%s, %s, %s)不属于你处在的认证网络(%s, %s, %s)", gwAddress, gwPort, gwId, GWAddress, GWPort, GWId))
+		if gwAddress != conf.GWAddress || gwPort != conf.GWPort || gwId != conf.GWId {
+			c.String(http.StatusBadRequest, fmt.Sprintf("当前页面(%s, %s, %s)不属于你处在的认证网络(%s, %s, %s)", conf.GWAddress, gwPort, gwId, conf.GWAddress, conf.GWPort, conf.GWId))
 			return
 		}
 		var userId int
@@ -112,22 +122,22 @@ func main() {
 			return
 		}
 		// 成功重定向
-		c.Redirect(http.StatusFound, fmt.Sprintf("http://%s:%s/wifidog/auth?token=%s", GWAddress, GWPort, token))
+		c.Redirect(http.StatusFound, fmt.Sprintf("http://%s:%s/wifidog/auth?token=%s", conf.GWAddress, conf.GWPort, token))
 	})
 
 	// 面向user，成功登录页面
-	var pathPortal = Path + PortalScriptPathFragment
+	var pathPortal = conf.Path + conf.PortalScriptPathFragment
 	r.GET(pathPortal[:len(pathPortal)-1], func(c *gin.Context) {
 		gwId := c.Query("gw_id")
-		if gwId != GWId {
-			c.String(http.StatusBadRequest, fmt.Sprintf("当前页面(%s)不属于你处在的认证网络(%s, %s, %s)", gwId, GWAddress, GWPort, GWId))
+		if gwId != conf.GWId {
+			c.String(http.StatusBadRequest, fmt.Sprintf("当前页面(%s)不属于你处在的认证网络(%s, %s, %s)", gwId, conf.GWAddress, conf.GWPort, conf.GWId))
 			return
 		}
 		c.HTML(http.StatusOK, "portal.html", gin.H{})
 	})
 
 	// 面向user，提示信息
-	var pathMessage = Path + MsgScriptPathFragment
+	var pathMessage = conf.Path + conf.MsgScriptPathFragment
 	r.GET(pathMessage[:len(pathMessage)-1], func(c *gin.Context) {
 		message := c.Query("message")
 		c.HTML(http.StatusOK, "portal.html", gin.H{
@@ -136,14 +146,14 @@ func main() {
 	})
 
 	// 面向Wifidog, Ping
-	var pathPing = Path + PingScriptPathFragment
+	var pathPing = conf.Path + conf.PingScriptPathFragment
 	r.GET(pathPing[:len(pathPing)-1], func(c *gin.Context) {
 		gwId := c.Query("gw_id")
 		//sysUptime := c.Query("sys_uptime")
 		//sysMemfree := c.Query("sys_memfree")
 		//sysLoad := c.Query("sys_load")
 		//wifidogUptime := c.Query("wifidog_uptime")
-		if gwId != GWId {
+		if gwId != conf.GWId {
 			// 不回应非当前网络的请求
 			c.Status(http.StatusInternalServerError)
 			return
@@ -152,7 +162,7 @@ func main() {
 	})
 
 	// 面向Wifidog, 验证
-	var pathAuth = Path + AuthScriptPathFragment
+	var pathAuth = conf.Path + conf.AuthScriptPathFragment
 	r.GET(pathAuth[:len(pathPing)-1], func(c *gin.Context) {
 		//stage := c.Query("stage")
 		ip := c.Query("ip")
@@ -161,7 +171,7 @@ func main() {
 		incoming := c.Query("incoming")
 		outgoing := c.Query("outgoing")
 		gwId := c.Query("gw_id")
-		if gwId != GWId {
+		if gwId != conf.GWId {
 			c.String(http.StatusOK, "Auth: 0")
 			return
 		}
@@ -187,7 +197,7 @@ func main() {
 	})
 
 	// 启动服务，监听 8080 端口
-	err = r.Run(":" + Port)
+	err = r.Run(":" + conf.Port)
 	if err != nil {
 		fmt.Println("服务端启动失败")
 		return
