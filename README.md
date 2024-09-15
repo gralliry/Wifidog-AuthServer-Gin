@@ -32,30 +32,19 @@ go run main.go
 ## 作者留言
 
 如果是路由器本身作为认证服务器，极力建议使用可执行文件（而不是使用go命令运行源码，其环境和程序占用都过大）
+
 ```shell
 ./wifidog-auth-server
 ```
 
 如果路由器存在go语言环境，你也可以直接运行源码
+
 ```shell
 go run main.go
 ```
 
+自编译
 
-## 常见问题
-
-* nginx: request header or cookie too large
-
-```
-# nginx配置，因为本程序的session是基于cookies加密实现的，cookies的数据量会很大
-# nginx对headers大小有限制
-server
-{
-    ...
-    # 增加默认请求头部缓冲区大小
-    client_header_buffer_size 16k;
-    # 增加允许的请求头部缓冲区数量
-    large_client_header_buffers 4 16k;
-    ...
-}
+```shell
+go build -ldflags="-s -w" -o auth-server main.go
 ```

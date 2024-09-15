@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 	"net/http"
-	"path/filepath"
 )
 
 /*
@@ -25,8 +24,7 @@ PingScriptPathFragment    (Optional; Default: ping/?          Note:  This is the
 AuthScriptPathFragment    (Optional; Default: auth/?          Note:  This is the script the user will be sent to upon error to read a readable message.)
 */
 
-// Path 定义全局变量
-
+// Config 定义配置
 type Config struct {
 	// 认证服务器
 	Port                     string
@@ -49,11 +47,12 @@ func main() {
 		fmt.Println("配置读取失败")
 		return
 	}
-	// 创建一个默认的 Gin 引擎
-	r := gin.Default()
+	// 设置为Release模式，这将禁用Logger和Recovery中间件
+	gin.SetMode(gin.ReleaseMode)
+	// 创建一个新的Gin引擎实例
+	r := gin.New()
 	// 设置模板文件的路径
-	r.LoadHTMLGlob(filepath.Join("./pages", "*.html"))
-	//
+	r.LoadHTMLGlob("./pages/*.html")
 	// 连接到 SQLite 数据库文件
 	db, err := sql.Open("sqlite3", "./database.db")
 	if err != nil {
