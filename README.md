@@ -20,11 +20,11 @@ go run main.go
 
 `认证服务器配置`：
 
-* `认证服务器：url路径` -> `\wifidog\`
-* `服务器login接口脚本url路径段` -> `login\?`
-* `服务器portal接口脚本url路径段` -> `portal\?`
-* `服务器ping接口脚本url路径段` -> `ping\?`
-* `服务器auth接口脚本url路径段` -> `auth\?`
+* `认证服务器：url路径` -> `/wifidog/`
+* `服务器login接口脚本url路径段` -> `login/?`
+* `服务器portal接口脚本url路径段` -> `portal/?`
+* `服务器ping接口脚本url路径段` -> `ping/?`
+* `服务器auth接口脚本url路径段` -> `auth/?`
 * `服务器消息接口脚本url路径段` -> `gw_message.php?`
 
 设置你的网关地址`GWAdress`(一般是10.0.0.1)和端口`GWPort`(一般是2060，注意在`config.toml`中是字符串)
