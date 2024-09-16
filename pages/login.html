@@ -1,20 +1,98 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
-    <meta charset='UTF-8'>
-    <title>登录 - Portal</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f7f7f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .login-container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            background-color: #5cb85c;
+            color: white;
+            cursor: pointer;
+            outline: none;
+        }
+
+        button:hover {
+            background-color: #4cae4c;
+        }
+
+        button[type="submit"] {
+            background-color: #5bc0de;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #46b8da;
+        }
+    </style>
 </head>
 <body>
-    <form method='POST'>
-        <label for='username'><input type='text' id='username' name='username' placeholder='Username'></label>
-        <br/>
-        <label for='password'><input type='password' id='password' name='password' placeholder='Password'></label>
-        <br/>
-        <button type='submit'>登录</button>
+<div class="login-container">
+    <h2>网络认证服务登录</h2>
+    <form id="loginForm" method="post">
+        <div class="input-group">
+            <label for="username">用户名:</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        <div class="input-group">
+            <label for="password">密码:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit" id="loginButton">登录</button>
+        <button type="button">注册</button>
+        <button type="button">找回密码</button>
     </form>
-    <script>
-        // 把参数重定向到post请求的当前路径
-        document.getElementById('form').action = window.location.href;
-    </script>
+</div>
+<script>
+    // 把参数重定向到post请求的当前路径
+    document.getElementById('loginForm').action = window.location.href;
+    document.getElementById('loginButton').addEventListener('click', function() {
+        document.getElementById('loginForm').submit();
+    });
+</script>
 </body>
 </html>

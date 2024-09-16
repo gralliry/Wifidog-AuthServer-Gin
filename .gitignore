@@ -7,3 +7,5 @@
 packages/*
 # 忽略所有以 tmp 开头的文件和目录
 tmp*
+
+test*
