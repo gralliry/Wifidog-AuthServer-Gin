@@ -1,3 +1,4 @@
+Host = "0.0.0.0"
 Port = "8003"
 
 Path = "/wifidog/"
@@ -9,4 +10,4 @@ AuthScriptPathFragment = "auth/?"
 
 GWAddress = "10.0.0.1"
 GWPort = "2060"
-GWId = "64644ADFE3CE"
+GWId = "your-router-mac"
