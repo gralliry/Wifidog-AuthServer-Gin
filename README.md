@@ -46,5 +46,6 @@ go run main.go
 自编译
 
 ```shell
+go env -w GOOS=linux CGO_ENABLED=1
 go build -ldflags="-s -w" -o auth-server main.go
 ```

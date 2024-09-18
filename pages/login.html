@@ -73,6 +73,7 @@
 <body>
 <div class="login-container">
     <h2>网络认证服务登录</h2>
+    <h4>{{.address}}:{{.port}}({{.id}})</h4>
     <form id="loginForm" method="post">
         <div class="input-group">
             <label for="username">用户名:</label>
@@ -90,7 +91,7 @@
 <script>
     // 把参数重定向到post请求的当前路径
     document.getElementById('loginForm').action = window.location.href;
-    document.getElementById('loginButton').addEventListener('click', function() {
+    document.getElementById('loginButton').addEventListener('click', function () {
         document.getElementById('loginForm').submit();
     });
 </script>

@@ -1,4 +1,4 @@
-module Wifidog-Server-Gin
+module Wifidog-AuthServer-Gin
 
 go 1.23.1
 

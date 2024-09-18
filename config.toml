@@ -7,7 +7,3 @@ PortalScriptPathFragment = "portal/?"
 MsgScriptPathFragment = "gw_message.php?"
 PingScriptPathFragment = "ping/?"
 AuthScriptPathFragment = "auth/?"
-
-GWAddress = "10.0.0.1"
-GWPort = "2060"
-GWId = "your-router-mac"

@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Wifidog-Server-Go-Gin.iml" filepath="$PROJECT_DIR$/.idea/Wifidog-Server-Go-Gin.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Wifidog-AuthServer-Gin.iml" filepath="$PROJECT_DIR$/.idea/Wifidog-AuthServer-Gin.iml" />
     </modules>
   </component>
 </project>
