@@ -9,6 +9,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"net/http"
+	"time"
 )
 
 /*
@@ -100,7 +101,6 @@ func main() {
 		var mac = c.Query("mac")
 		// // 因为后台有可能存在应用是使用http发送请求，所以这里的url不一定是用户打开浏览器访问的url
 		var url = c.Query("url")
-
 		// 查询用户是否存在
 		var userId int
 		err = db.QueryRow(
@@ -114,7 +114,7 @@ func main() {
 			return
 		}
 		// 查询网络是否存在(可以分开两个，查询是否存在再查询是否匹配)
-		var netId int
+		var netId string
 		err = db.QueryRow(
 			"SELECT id FROM net_info where address = ? and port = ? and id = ?",
 			gwAddress, gwPort, gwId,
@@ -178,8 +178,8 @@ func main() {
 		var sysMemfree = c.Query("sys_memfree")
 		var sysLoad = c.Query("sys_load")
 		var wifidogUptime = c.Query("wifidog_uptime")
-		// 查询网络是否存在
-		var netId int
+		// 查询网络是否存在，注意address如果采用别的看门狗可能不一定是ip（至少wifidog是ip）
+		var netId string
 		err = db.QueryRow(
 			"SELECT id FROM net_info where id = ?",
 			gwId,
@@ -197,9 +197,9 @@ func main() {
 		c.String(http.StatusOK, "Pong")
 	})
 
-	// 面向Wifidog, 验证
+	// 面向Wifidog, 验证Auth
 	r.Handle("GET", routePath(conf.Path, conf.AuthScriptPathFragment), func(c *gin.Context) {
-		//stage := c.Query("stage")
+		var stage = c.Query("stage")
 		var ip = c.Query("ip")
 		var mac = c.Query("mac")
 		var token = c.Query("token")
@@ -207,20 +207,35 @@ func main() {
 		var outgoing = c.Query("outgoing")
 		var gwId = c.Query("gw_id")
 		// 查询连接
+		// 用户是可以拿到token的，为了防止用户在多台设备使用相同mac，这里条件要加上mac
+		// 可以加上ip，伪造的可能性更小，但是如果切换vpn可能会导致断开
 		var connId int
 		err = db.QueryRow(
-			"SELECT id FROM connection where token = ? and net_id = ?",
-			token, gwId,
+			"SELECT id FROM connection where token = ? and net_id = ? and ip = ? and mac = ?",
+			token, gwId, ip, mac,
 		).Scan(&connId)
 		if err != nil {
 			c.String(http.StatusOK, "Auth: 0")
 			return
 		}
+		// 当前时间戳（秒）
+		var timestamp = time.Now().Unix()
 		// 更新连接信息，忽略更新失败的情况
-		_, err = db.Exec(
-			"UPDATE connection SET ip = ?, mac = ?, incoming = ?, outgoing = ? WHERE id = ?",
-			ip, mac, incoming, outgoing, connId,
-		)
+		if stage == "login" {
+			_, err = db.Exec(
+				"UPDATE connection SET incoming = ?, outgoing = ?, start_time = ?, end_time = ? WHERE id = ?",
+				incoming, outgoing, timestamp, timestamp, connId,
+			)
+		} else if stage == "counters" {
+			_, err = db.Exec(
+				"UPDATE connection SET incoming = ?, outgoing = ?,  end_time = ? WHERE id = ?",
+				incoming, outgoing, timestamp, connId,
+			)
+		} else {
+			// 不存在当前的stage
+			c.String(http.StatusOK, "Auth: 0")
+			return
+		}
 		// 认证成功
 		c.String(http.StatusOK, "Auth: 1")
 	})

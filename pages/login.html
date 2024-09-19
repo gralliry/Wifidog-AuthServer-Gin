@@ -76,16 +76,17 @@
     <h4>{{.address}}:{{.port}}({{.id}})</h4>
     <form id="loginForm" method="post">
         <div class="input-group">
-            <label for="username">用户名:</label>
-            <input type="text" id="username" name="username" required>
+            <label for="username">
+                <input type="text" id="username" name="username" placeholder="用户名 | 学号 | 工号" required>
+            </label>
         </div>
         <div class="input-group">
-            <label for="password">密码:</label>
-            <input type="password" id="password" name="password" required>
+            <label for="password">
+                <input type="password" id="password" name="password" placeholder="密码 | 授权码" required>
+            </label>
         </div>
         <button type="submit" id="loginButton">登录</button>
-        <button type="button">注册</button>
-        <button type="button">找回密码</button>
+        <button type="button">说明</button>
     </form>
 </div>
 <script>
