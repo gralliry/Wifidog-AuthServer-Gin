@@ -40,33 +40,26 @@ type Config struct {
 	AuthScriptPathFragment   string
 }
 
-var conf Config
-var db *sql.DB
-var err error
+var (
+	conf Config
+	db   *sql.DB
+	err  error
+)
 
 func routePath(rootPath string, scriptPath string) string {
 	fullPath := rootPath + scriptPath
 	return fullPath[:len(fullPath)-1]
 }
 
-func logFatal(err error, message string) {
-	if err != nil {
-		log.Fatal(message)
-	}
-}
-
-func logPrintln(err error, message string) {
-	if err != nil {
-		log.Println(message)
-	}
-}
-
 func main() {
 	_, err = toml.DecodeFile("config.toml", &conf)
-	logFatal(err, "配置读取失败")
+	if err != nil {
+		log.Fatal("配置读取失败")
+	}
 	// 设置为Release模式，这将禁用Logger和Recovery中间件, 但是会关闭所有日志输出
+	// 应该由编译或运行时指定
 	//gin.SetMode(gin.ReleaseMode)
-	gin.SetMode(gin.DebugMode)
+	//gin.SetMode(gin.DebugMode)
 	// 创建一个新的Gin引擎实例
 	var r = gin.New()
 	// 设置模板文件的路径
@@ -74,19 +67,31 @@ func main() {
 
 	// 连接到 SQLite 数据库文件
 	db, err = sql.Open("sqlite3", "./database.db")
-	logFatal(err, "连接数据库时失败")
+	if err != nil {
+		log.Fatal("连接数据库时失败")
+	}
 	// 确保在函数退出时关闭数据库连接
 	defer func(db *sql.DB) {
 		err = db.Close()
-		logPrintln(err, "数据库关闭时发生了错误")
+		if err != nil {
+			log.Println("数据库关闭时发生了错误")
+		}
 	}(db)
+	_, err = db.Exec(
+		"SELECT name FROM sqlite_master WHERE type='table'",
+	)
+	if err != nil {
+		log.Fatal("数据库测试连接失败")
+	}
 
 	// 面向user，登录页面
 	r.Handle("GET", routePath(conf.Path, conf.LoginScriptPathFragment), func(context *gin.Context) {
 		// 网关信息
-		var gwAddress = context.Query("gw_address")
-		var gwPort = context.Query("gw_port")
-		var gwId = context.Query("gw_id")
+		var (
+			gwAddress = context.Query("gw_address")
+			gwPort    = context.Query("gw_port")
+			gwId      = context.Query("gw_id")
+		)
 		context.HTML(http.StatusOK, "login.html", gin.H{
 			"address": gwAddress,
 			"port":    gwPort,
@@ -96,17 +101,19 @@ func main() {
 
 	// 面向user，登录请求
 	r.Handle("POST", routePath(conf.Path, conf.LoginScriptPathFragment), func(context *gin.Context) {
-		// 获取表单参数
-		var username = context.PostForm("username")
-		var password = context.PostForm("password")
-		// 获取query参数
-		var gwAddress = context.Query("gw_address")
-		var gwPort = context.Query("gw_port")
-		var gwId = context.Query("gw_id")
-		var ip = context.Query("ip")
-		var mac = context.Query("mac")
-		// // 因为后台有可能存在应用是使用http发送请求，所以这里的url不一定是用户打开浏览器访问的url
-		var url = context.Query("url")
+		var (
+			// 获取表单参数
+			username = context.PostForm("username")
+			password = context.PostForm("password")
+			// 获取query参数
+			gwAddress = context.Query("gw_address")
+			gwPort    = context.Query("gw_port")
+			gwId      = context.Query("gw_id")
+			ip        = context.Query("ip")
+			mac       = context.Query("mac")
+			// // 因为后台有可能存在应用是使用http发送请求，所以这里的url不一定是用户打开浏览器访问的url
+			url = context.Query("url")
+		)
 		// 查询用户是否存在
 		var userId int
 		err = db.QueryRow(
@@ -114,6 +121,7 @@ func main() {
 			username, password,
 		).Scan(&userId)
 		if err != nil {
+			fmt.Println(err)
 			context.HTML(http.StatusUnauthorized, "message.html", gin.H{
 				"message": "账号不存在或密码错误",
 			})
@@ -178,12 +186,13 @@ func main() {
 	// 面向Wifidog, Ping
 	r.Handle("GET", routePath(conf.Path, conf.PingScriptPathFragment), func(context *gin.Context) {
 		// 需要防止外部请求这个接口导致外部修改系统信息 todo
-		// 这里需要写入wifidog的信息
-		var gwId = context.Query("gw_id")
-		var sysUptime = context.Query("sys_uptime")
-		var sysMemfree = context.Query("sys_memfree")
-		var sysLoad = context.Query("sys_load")
-		var wifidogUptime = context.Query("wifidog_uptime")
+		var (
+			gwId          = context.Query("gw_id")
+			sysUptime     = context.Query("sys_uptime")
+			sysMemfree    = context.Query("sys_memfree")
+			sysLoad       = context.Query("sys_load")
+			wifidogUptime = context.Query("wifidog_uptime")
+		)
 		// 查询网络是否存在，注意address如果采用别的看门狗可能不一定是ip（至少wifidog是ip）
 		var netId string
 		err = db.QueryRow(
@@ -205,13 +214,15 @@ func main() {
 
 	// 面向Wifidog, 验证Auth
 	r.Handle("GET", routePath(conf.Path, conf.AuthScriptPathFragment), func(context *gin.Context) {
-		var stage = context.Query("stage")
-		var ip = context.Query("ip")
-		var mac = context.Query("mac")
-		var token = context.Query("token")
-		var incoming = context.Query("incoming")
-		var outgoing = context.Query("outgoing")
-		var gwId = context.Query("gw_id")
+		var (
+			stage    = context.Query("stage")
+			ip       = context.Query("ip")
+			mac      = context.Query("mac")
+			token    = context.Query("token")
+			incoming = context.Query("incoming")
+			outgoing = context.Query("outgoing")
+			gwId     = context.Query("gw_id")
+		)
 		// 查询连接
 		// 用户是可以拿到token的，为了防止用户在多台设备使用相同mac，这里条件要加上mac
 		// 可以加上ip，伪造的可能性更小，但是如果切换vpn可能会导致断开
@@ -257,9 +268,7 @@ func main() {
 
 	// 启动服务，监听端口
 	err = r.Run(conf.Host + ":" + conf.Port)
-	logFatal(err, "服务端启动失败")
-	// 清除所有连接
-	_, err = db.Exec(
-		"DELETE FROM connection WHERE TRUE",
-	)
+	if err != nil {
+		log.Fatal("服务端启动失败")
+	}
 }
