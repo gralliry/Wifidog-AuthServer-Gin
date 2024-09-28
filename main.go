@@ -1,15 +1,15 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"net/http"
 	"time"
+	"zombiezen.com/go/sqlite"
+	"zombiezen.com/go/sqlite/sqlitex"
 )
 
 /*
@@ -40,19 +40,14 @@ type Config struct {
 	AuthScriptPathFragment   string
 }
 
-var (
-	conf Config
-	db   *sql.DB
-	err  error
-)
-
 func routePath(rootPath string, scriptPath string) string {
 	fullPath := rootPath + scriptPath
 	return fullPath[:len(fullPath)-1]
 }
 
 func main() {
-	_, err = toml.DecodeFile("config.toml", &conf)
+	var conf Config
+	_, err := toml.DecodeFile("config.toml", &conf)
 	if err != nil {
 		log.Fatal("配置读取失败")
 	}
@@ -66,23 +61,17 @@ func main() {
 	r.LoadHTMLGlob("./pages/*.html")
 
 	// 连接到 SQLite 数据库文件
-	db, err = sql.Open("sqlite3", "./database.db")
+	conn, err := sqlite.OpenConn("./database.db")
 	if err != nil {
 		log.Fatal("连接数据库时失败")
 	}
 	// 确保在函数退出时关闭数据库连接
-	defer func(db *sql.DB) {
-		err = db.Close()
+	defer func(conn *sqlite.Conn) {
+		err := conn.Close()
 		if err != nil {
 			log.Println("数据库关闭时发生了错误")
 		}
-	}(db)
-	_, err = db.Exec(
-		"SELECT name FROM sqlite_master WHERE type='table'",
-	)
-	if err != nil {
-		log.Fatal("数据库测试连接失败")
-	}
+	}(conn)
 
 	// 面向user，登录页面
 	r.Handle("GET", routePath(conf.Path, conf.LoginScriptPathFragment), func(context *gin.Context) {
@@ -114,14 +103,26 @@ func main() {
 			// // 因为后台有可能存在应用是使用http发送请求，所以这里的url不一定是用户打开浏览器访问的url
 			url = context.Query("url")
 		)
+		var isExist bool
 		// 查询用户是否存在
 		var userId int
-		err = db.QueryRow(
-			"SELECT id FROM user_info where username = ? and password = ?",
-			username, password,
-		).Scan(&userId)
+		isExist = false
+		err := sqlitex.ExecuteTransient(conn,
+			"SELECT id FROM user_info where username = ? and password = ? LIMIT 1",
+			&sqlitex.ExecOptions{
+				Args: []any{username, password},
+				ResultFunc: func(stmt *sqlite.Stmt) error {
+					userId = stmt.ColumnInt(0)
+					isExist = true
+					return nil
+				},
+			},
+		)
 		if err != nil {
-			fmt.Println(err)
+			context.Status(http.StatusInternalServerError)
+			return
+		}
+		if !isExist {
 			context.HTML(http.StatusUnauthorized, "message.html", gin.H{
 				"message": "账号不存在或密码错误",
 			})
@@ -129,11 +130,23 @@ func main() {
 		}
 		// 查询网络是否存在(可以分开两个，查询是否存在再查询是否匹配)
 		var netId string
-		err = db.QueryRow(
-			"SELECT id FROM net_info where address = ? and port = ? and id = ?",
-			gwAddress, gwPort, gwId,
-		).Scan(&netId)
+		isExist = false
+		err = sqlitex.ExecuteTransient(conn,
+			"SELECT id FROM net_info where address = ? and port = ? and id = ? LIMIT 1",
+			&sqlitex.ExecOptions{
+				Args: []any{gwAddress, gwPort, gwId},
+				ResultFunc: func(stmt *sqlite.Stmt) error {
+					userId = stmt.ColumnInt(0)
+					isExist = true
+					return nil
+				},
+			},
+		)
 		if err != nil {
+			context.Status(http.StatusInternalServerError)
+			return
+		}
+		if !isExist {
 			context.HTML(http.StatusForbidden, "message.html", gin.H{
 				"message": "你正在连接的网络不受当前认证服务器管辖",
 			})
@@ -141,9 +154,11 @@ func main() {
 		}
 		// 更新用户信息
 		var token = uuid.New().String()
-		_, err = db.Exec(
+		err = sqlitex.ExecuteTransient(conn,
 			"INSERT INTO connection (token, user_id, net_id, ip, mac) VALUES (?, ?, ?, ?, ?)",
-			token, userId, netId, ip, mac,
+			&sqlitex.ExecOptions{
+				Args: []any{token, userId, netId, ip, mac},
+			},
 		)
 		if err != nil {
 			context.HTML(http.StatusInternalServerError, "message.html", gin.H{
@@ -195,19 +210,29 @@ func main() {
 		)
 		// 查询网络是否存在，注意address如果采用别的看门狗可能不一定是ip（至少wifidog是ip）
 		var netId string
-		err = db.QueryRow(
-			"SELECT id FROM net_info where id = ?",
-			gwId,
-		).Scan(&netId)
-		if err != nil {
+		var isExist = false
+		err = sqlitex.ExecuteTransient(conn,
+			"SELECT id FROM net_info where id = ? LIMIT 1",
+			&sqlitex.ExecOptions{
+				Args: []any{netId},
+				ResultFunc: func(stmt *sqlite.Stmt) error {
+					netId = stmt.ColumnText(0)
+					isExist = true
+					return nil
+				},
+			},
+		)
+		if err != nil || !isExist {
 			// 不回应非当前网络的请求
 			context.Status(http.StatusInternalServerError)
 			return
 		}
 		// 更新网络信息，忽略更新失败的情况
-		_, err = db.Exec(
+		err = sqlitex.ExecuteTransient(conn,
 			"UPDATE net_info SET sys_uptime = ?, sys_memfree = ?, sys_load = ?, wifidog_uptime = ? WHERE id = ?",
-			sysUptime, sysMemfree, sysLoad, wifidogUptime, gwId,
+			&sqlitex.ExecOptions{
+				Args: []any{sysUptime, sysMemfree, sysLoad, wifidogUptime, gwId},
+			},
 		)
 		context.String(http.StatusOK, "Pong")
 	})
@@ -227,11 +252,23 @@ func main() {
 		// 用户是可以拿到token的，为了防止用户在多台设备使用相同mac，这里条件要加上mac
 		// 可以加上ip，伪造的可能性更小，但是如果切换vpn可能会导致断开
 		var connId int
-		err = db.QueryRow(
-			"SELECT id FROM connection where token = ? and net_id = ? and ip = ? and mac = ?",
-			token, gwId, ip, mac,
-		).Scan(&connId)
+		var isExist = false
+		err = sqlitex.ExecuteTransient(conn,
+			"SELECT id FROM connection where token = ? and net_id = ? and ip = ? and mac = ? LIMIT 1",
+			&sqlitex.ExecOptions{
+				Args: []any{token, gwId, ip, mac},
+				ResultFunc: func(stmt *sqlite.Stmt) error {
+					connId = stmt.ColumnInt(0)
+					isExist = true
+					return nil
+				},
+			},
+		)
 		if err != nil {
+			context.Status(http.StatusInternalServerError)
+			return
+		}
+		if !isExist {
 			context.String(http.StatusOK, "Auth: 0")
 			return
 		}
@@ -239,24 +276,30 @@ func main() {
 		var timestamp = time.Now().Unix()
 		// 更新连接信息，忽略更新失败的情况
 		if stage == "login" {
-			_, err = db.Exec(
+			err = sqlitex.ExecuteTransient(conn,
 				"UPDATE connection SET incoming = ?, outgoing = ?, start_time = ?, end_time = ? WHERE id = ?",
-				incoming, outgoing, timestamp, timestamp, connId,
+				&sqlitex.ExecOptions{
+					Args: []any{incoming, outgoing, timestamp, timestamp, connId},
+				},
 			)
 			// 认证成功
 			context.String(http.StatusOK, "Auth: 1")
 		} else if stage == "counters" {
-			_, err = db.Exec(
+			err = sqlitex.ExecuteTransient(conn,
 				"UPDATE connection SET incoming = ?, outgoing = ?, end_time = ? WHERE id = ?",
-				incoming, outgoing, timestamp, connId,
+				&sqlitex.ExecOptions{
+					Args: []any{incoming, outgoing, timestamp, connId},
+				},
 			)
 			// 认证成功
 			context.String(http.StatusOK, "Auth: 1")
 		} else if stage == "logout" {
 			// 考虑是否要验证ip和mac
-			_, err = db.Exec(
+			err = sqlitex.ExecuteTransient(conn,
 				"DELETE FROM connection WHERE token = ?",
-				token,
+				&sqlitex.ExecOptions{
+					Args: []any{token},
+				},
 			)
 			// 退出
 			context.String(http.StatusOK, "Auth: 0")
