@@ -10,5 +10,5 @@ GOMIPS='softfloat'
 GIN_MODE='debug'
 
 env GOOS="$GOOS" GOARCH="$GOARCH" GOMIPS="$GOMIPS" \
-  GIN_MODE="$GIN_MODE" \
-  go build -ldflags="-s -w" -o authserver-"$GOOS"-"$GOARCH"
+  GIN_MODE="$GIN_MODE" CGO_ENABLED=1 \
+  go build -ldflags="-s -w" -o bin/authserver-"$GOOS"-"$GOARCH"

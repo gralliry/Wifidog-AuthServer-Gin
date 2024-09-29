@@ -34,7 +34,7 @@ go run main.go
 如果是路由器本身作为认证服务器，极力建议使用可执行文件（而不是使用go命令运行源码，其环境和程序占用都过大）
 
 ```shell
-./wifidog-auth-server
+./authserver
 ```
 
 如果路由器存在go语言环境，你也可以直接运行源码
@@ -43,9 +43,7 @@ go run main.go
 go run main.go
 ```
 
-自编译
+## 问题
 
-```shell
-go env -w GOOS=linux CGO_ENABLED=1
-go build -ldflags="-s -w" -o auth-server main.go
-```
+部分存在无法编译的问题可能是因为缺少对应的gcc库，尤其是对于openwrt中linux-mipsel架构
+目前作者在寻找适配的、能快速部署的gcc编译器，如果你有好的想法可以在issue中提出建议，作者会一一回复
