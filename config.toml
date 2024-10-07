@@ -2,6 +2,7 @@ Host = "0.0.0.0"
 Port = "8003"
 
 Path = "/wifidog/"
+
 LoginScriptPathFragment = "login/?"
 PortalScriptPathFragment = "portal/?"
 MsgScriptPathFragment = "gw_message.php?"

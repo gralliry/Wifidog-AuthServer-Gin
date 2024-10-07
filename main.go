@@ -122,7 +122,6 @@ func main() {
 			username, password,
 		).Scan(&userId)
 		if err != nil {
-			fmt.Println(err)
 			context.HTML(http.StatusUnauthorized, "message.html", gin.H{
 				"message": "账号不存在或密码错误",
 			})
