@@ -1,14 +1,15 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/gin-gonic/gin"
-	_ "github.com/glebarez/go-sqlite"
+	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -26,7 +27,6 @@ PingScriptPathFragment    (Optional; Default: ping/?          Note:  This is the
 AuthScriptPathFragment    (Optional; Default: auth/?          Note:  This is the script the user will be sent to upon error to read a readable message.)
 */
 
-// Config 定义配置
 type Config struct {
 	// 认证服务器
 	Host string
@@ -40,17 +40,12 @@ type Config struct {
 	AuthScriptPathFragment   string
 }
 
-var (
-	conf Config
-	db   *sql.DB
-)
-
 func routePath(rootPath string, scriptPath string) string {
-	fullPath := rootPath + scriptPath
-	return fullPath[:len(fullPath)-1]
+	return strings.Replace(rootPath+scriptPath, "?", "", -1)
 }
 
 func main() {
+	var conf Config
 	_, err := toml.DecodeFile("config.toml", &conf)
 	if err != nil {
 		log.Fatal("配置读取失败")
@@ -65,24 +60,15 @@ func main() {
 	r.LoadHTMLGlob("./pages/*.html")
 
 	// 连接到 SQLite 数据库文件
-	db, err = sql.Open("sqlite", "./data/database.db")
+	// 确保在函数退出时关闭数据库连接 log.Println("数据库关闭时发生了错误")
+	db, err := gorm.Open(sqlite.Open("./data/database.db"), &gorm.Config{})
 	if err != nil {
 		log.Fatal("连接数据库时失败")
 	}
-	// 确保在函数退出时关闭数据库连接
-	defer func(db *sql.DB) {
-		err = db.Close()
-		if err != nil {
-			log.Println("数据库关闭时发生了错误")
-		}
-	}(db)
 
-	// 测试数据库
-	_, err = db.Query(
-		"SELECT name FROM sqlite_master WHERE type='table'",
-	)
-	if err != nil {
-		log.Fatal("数据库测试连接失败", err)
+	// 测试数据库 // 检查结果
+	if db.Raw("SELECT name FROM sqlite_master WHERE type='tablea'").Error != nil {
+		log.Fatal("数据库测试连接失败")
 	}
 
 	// 面向user，登录页面
@@ -115,13 +101,19 @@ func main() {
 			// // 因为后台有可能存在应用是使用http发送请求，所以这里的url不一定是用户打开浏览器访问的url
 			url = context.Query("url")
 		)
+		//
+		var result *gorm.DB
 		// 查询用户是否存在
 		var userId int
-		err := db.QueryRow(
+		result = db.Raw(
 			"SELECT id FROM user_info where username = ? and password = ?",
 			username, password,
 		).Scan(&userId)
-		if err != nil {
+		if result.Error != nil {
+			context.Status(http.StatusInternalServerError)
+			return
+		}
+		if result.RowsAffected == 0 {
 			context.HTML(http.StatusUnauthorized, "message.html", gin.H{
 				"message": "账号不存在或密码错误",
 			})
@@ -129,11 +121,15 @@ func main() {
 		}
 		// 查询网络是否存在(可以分开两个，查询是否存在再查询是否匹配)
 		var netId string
-		err = db.QueryRow(
+		result = db.Raw(
 			"SELECT id FROM net_info where address = ? and port = ? and id = ?",
 			gwAddress, gwPort, gwId,
 		).Scan(&netId)
-		if err != nil {
+		if result.Error != nil {
+			context.Status(http.StatusInternalServerError)
+			return
+		}
+		if result.RowsAffected == 0 {
 			context.HTML(http.StatusForbidden, "message.html", gin.H{
 				"message": "你正在连接的网络不受当前认证服务器管辖",
 			})
@@ -141,11 +137,11 @@ func main() {
 		}
 		// 更新用户信息
 		var token = uuid.New().String()
-		_, err = db.Exec(
+		result = db.Exec(
 			"INSERT INTO connection (token, user_id, net_id, ip, mac) VALUES (?, ?, ?, ?, ?)",
 			token, userId, netId, ip, mac,
 		)
-		if err != nil {
+		if result.Error != nil {
 			context.HTML(http.StatusInternalServerError, "message.html", gin.H{
 				"message": "登录失败",
 			})
@@ -160,7 +156,9 @@ func main() {
 	// 面向user，成功登录页面
 	r.Handle("GET", routePath(conf.Path, conf.PortalScriptPathFragment), func(context *gin.Context) {
 		// 这个请求是wifidog重定向给用户的，本质是用户请求的，不用对其身份验证
-		var gwId = context.Query("gw_id")
+		var (
+			gwId = context.Query("gw_id")
+		)
 		// 读取 url 尝试重定向
 		url, err := context.Cookie("url")
 		if err != nil {
@@ -192,19 +190,20 @@ func main() {
 			sysLoad       = context.Query("sys_load")
 			wifidogUptime = context.Query("wifidog_uptime")
 		)
+		var result *gorm.DB
 		// 查询网络是否存在，注意address如果采用别的看门狗可能不一定是ip（至少wifidog是ip）
 		var netId string
-		err := db.QueryRow(
+		result = db.Raw(
 			"SELECT id FROM net_info where id = ?",
 			gwId,
 		).Scan(&netId)
-		if err != nil {
+		if result.Error != nil || result.RowsAffected == 0 {
 			// 不回应非当前网络的请求
 			context.Status(http.StatusInternalServerError)
 			return
 		}
 		// 更新网络信息，忽略更新失败的情况
-		_, err = db.Exec(
+		db.Raw(
 			"UPDATE net_info SET sys_uptime = ?, sys_memfree = ?, sys_load = ?, wifidog_uptime = ? WHERE id = ?",
 			sysUptime, sysMemfree, sysLoad, wifidogUptime, gwId,
 		)
@@ -222,15 +221,20 @@ func main() {
 			outgoing = context.Query("outgoing")
 			gwId     = context.Query("gw_id")
 		)
+		var result *gorm.DB
 		// 查询连接
 		// 用户是可以拿到token的，为了防止用户在多台设备使用相同mac，这里条件要加上mac
 		// 可以加上ip，伪造的可能性更小，但是如果切换vpn可能会导致断开
 		var connId int
-		err := db.QueryRow(
+		result = db.Raw(
 			"SELECT id FROM connection where token = ? and net_id = ? and ip = ? and mac = ?",
 			token, gwId, ip, mac,
 		).Scan(&connId)
-		if err != nil {
+		if result.Error != nil {
+			context.Status(http.StatusInternalServerError)
+			return
+		}
+		if result.RowsAffected == 0 {
 			context.String(http.StatusOK, "Auth: 0")
 			return
 		}
@@ -238,22 +242,38 @@ func main() {
 		var timestamp = time.Now().Unix()
 		// 更新连接信息，忽略更新失败的情况
 		if stage == "login" {
-			_, err = db.Exec(
+			result = db.Exec(
 				"UPDATE connection SET incoming = ?, outgoing = ?, start_time = ?, end_time = ? WHERE id = ?",
 				incoming, outgoing, timestamp, timestamp, connId,
 			)
-			// 认证成功
-			context.String(http.StatusOK, "Auth: 1")
+			if result.Error != nil {
+				context.Status(http.StatusInternalServerError)
+				return
+			}
+			if result.RowsAffected == 1 {
+				// 认证成功
+				context.String(http.StatusOK, "Auth: 1")
+			} else {
+				context.String(http.StatusOK, "Auth: 0")
+			}
 		} else if stage == "counters" {
-			_, err = db.Exec(
+			result = db.Exec(
 				"UPDATE connection SET incoming = ?, outgoing = ?, end_time = ? WHERE id = ?",
 				incoming, outgoing, timestamp, connId,
 			)
-			// 认证成功
-			context.String(http.StatusOK, "Auth: 1")
+			if result.Error != nil {
+				context.Status(http.StatusInternalServerError)
+				return
+			}
+			if result.RowsAffected == 1 {
+				// 认证成功
+				context.String(http.StatusOK, "Auth: 1")
+			} else {
+				context.String(http.StatusOK, "Auth: 0")
+			}
 		} else if stage == "logout" {
 			// 考虑是否要验证ip和mac
-			_, err = db.Exec(
+			db.Exec(
 				"DELETE FROM connection WHERE token = ?",
 				token,
 			)

@@ -6,8 +6,9 @@ require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/antchfx/htmlquery v1.3.2
 	github.com/gin-gonic/gin v1.10.0
-	github.com/glebarez/go-sqlite v1.22.0
+	github.com/glebarez/sqlite v1.11.0
 	github.com/google/uuid v1.6.0
+	gorm.io/gorm v1.25.12
 )
 
 require (
@@ -19,11 +20,14 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
+	github.com/glebarez/go-sqlite v1.22.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
