@@ -16,6 +16,15 @@
     </style>
 </head>
 <body>
-<h1>{{.message}}</h1>
+<h1 id="title">null</h1>
+<script>
+    // 使用window.location.search获取查询字符串
+    const queryString = window.location.search;
+    // 创建一个URLSearchParams对象
+    const params = new URLSearchParams(queryString);
+    // 获取特定的查询参数值
+    const message = params.get('message');
+    document.getElementById('title').innerText = message
+</script>
 </body>
 </html>

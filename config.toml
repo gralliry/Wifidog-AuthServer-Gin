@@ -1,10 +1,8 @@
-Host = "0.0.0.0"
-Port = "8003"
+ListenHost = "0.0.0.0"
+ListenPort = "8003"
 
-Path = "/wifidog/"
-
-LoginScriptPathFragment = "login/?"
-PortalScriptPathFragment = "portal/?"
-MsgScriptPathFragment = "gw_message.php?"
-PingScriptPathFragment = "ping/?"
-AuthScriptPathFragment = "auth/?"
+LoginScriptPathFragment = "/wifidog/login"
+PortalScriptPathFragment = "/wifidog/portal"
+MsgScriptPathFragment = "/wifidog/message"
+PingScriptPathFragment = "/wifidog/ping"
+AuthScriptPathFragment = "/wifidog/auth"

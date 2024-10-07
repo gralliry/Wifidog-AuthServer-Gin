@@ -7,8 +7,16 @@
 <body>
 
 <!-- 页面内容 -->
-<h1>已成功登录到网络({{.id}})</h1>
+<h1 id="title"></h1>
 <p>你可以手动关闭当前页面</p>
-
+<script>
+    // 使用window.location.search获取查询字符串
+    const queryString = window.location.search;
+    // 创建一个URLSearchParams对象
+    const params = new URLSearchParams(queryString);
+    // 获取特定的查询参数值
+    const gw_id = params.get('gw_id');
+    document.getElementById('title').innerText = "已成功登录到网络(" + gw_id + ")"
+</script>
 </body>
 </html>

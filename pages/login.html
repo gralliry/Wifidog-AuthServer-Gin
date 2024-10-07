@@ -73,7 +73,7 @@
 <body>
 <div class="login-container">
     <h2>网络认证服务登录</h2>
-    <h4>{{.address}}:{{.port}}({{.id}})</h4>
+    <h4 id="gw_info">?:?(?)</h4>
     <form id="loginForm" method="post">
         <div class="input-group">
             <label for="username">
@@ -90,6 +90,16 @@
     </form>
 </div>
 <script>
+    // 使用window.location.search获取查询字符串
+    const queryString = window.location.search;
+    // 创建一个URLSearchParams对象
+    const params = new URLSearchParams(queryString);
+    // 获取特定的查询参数值
+    const address = params.get('gw_address');
+    const port = params.get('gw_port');
+    const id = params.get('gw_id');
+    document.getElementById('gw_info').innerText = address + ":" + port + "(" + id + ")";
+
     // 把参数重定向到post请求的当前路径
     document.getElementById('loginForm').action = window.location.href;
     document.getElementById('loginButton').addEventListener('click', function () {
