@@ -51,7 +51,7 @@ func main() {
 	// 创建一个新的Gin引擎实例
 	var r = gin.New()
 	// 设置模板文件的路径
-	r.Static("/static", "./pages")
+	r.LoadHTMLGlob("./pages/*.html")
 
 	// 连接到 SQLite 数据库文件
 	// 确保在函数退出时关闭数据库连接 log.Println("数据库关闭时发生了错误")
@@ -72,8 +72,8 @@ func main() {
 			gwPort    = context.Query("gw_port")
 			gwId      = context.Query("gw_id")
 		)
-		context.Redirect(http.StatusFound, fmt.Sprintf("/static/login.html?gw_address=%s&gw_port=%s&gw_id=%s",
-			gwAddress, gwPort, gwId))
+		context.Request.URL.RawQuery = fmt.Sprintf("gw_address=%s&gw_port=%s&gw_id=%s", gwAddress, gwPort, gwId)
+		context.HTML(http.StatusOK, "login.html", gin.H{})
 	})
 
 	// 面向user，登录请求
@@ -104,8 +104,8 @@ func main() {
 			return
 		}
 		if result.RowsAffected == 0 {
-			context.Redirect(http.StatusFound, fmt.Sprintf("/static/message.html?message=%s",
-				"账号不存在或密码错误"))
+			context.Request.URL.RawQuery = fmt.Sprintf("message=%s", "账号不存在或密码错误")
+			context.HTML(http.StatusOK, "message.html", gin.H{})
 			return
 		}
 		// 查询网络是否存在(可以分开两个，查询是否存在再查询是否匹配)
@@ -119,8 +119,8 @@ func main() {
 			return
 		}
 		if result.RowsAffected == 0 {
-			context.Redirect(http.StatusFound, fmt.Sprintf("/static/message.html?message=%s",
-				"你正在连接的网络不受当前认证服务器管辖"))
+			context.Request.URL.RawQuery = fmt.Sprintf("message=%s", "你正在连接的网络不受当前认证服务器管辖")
+			context.HTML(http.StatusOK, "message.html", gin.H{})
 			return
 		}
 		// 更新用户信息
@@ -143,8 +143,8 @@ func main() {
 		var (
 			gwId = context.Query("gw_id")
 		)
-		context.Redirect(http.StatusFound, fmt.Sprintf("/static/portal.html?gw_id=%s",
-			gwId))
+		context.Request.URL.RawQuery = fmt.Sprintf("gw_id=%s", gwId)
+		context.HTML(http.StatusOK, "portal.html", gin.H{})
 	})
 
 	// 面向user，提示信息
@@ -154,8 +154,8 @@ func main() {
 			message = context.Query("message")
 		)
 		// denied
-		context.Redirect(http.StatusFound, fmt.Sprintf("/static/message.html?message=%s",
-			message))
+		context.Request.URL.RawQuery = fmt.Sprintf("message=%s", message)
+		context.HTML(http.StatusOK, "message.html", gin.H{})
 	})
 
 	// 面向Wifidog, Ping
