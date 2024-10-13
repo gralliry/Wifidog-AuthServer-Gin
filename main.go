@@ -81,7 +81,7 @@ func main() {
 		var result *gorm.DB
 		// 查询用户是否存在
 		var userId int
-		result = db.Exec(
+		result = db.Raw(
 			"SELECT id FROM user_info where username = ? and password = ?",
 			username, password,
 		).Scan(&userId)
@@ -97,7 +97,7 @@ func main() {
 		}
 		// 查询网络是否存在(可以分开两个，查询是否存在再查询是否匹配)
 		var netId string
-		result = db.Exec(
+		result = db.Raw(
 			"SELECT id FROM net_info where address = ? and port = ? and id = ?",
 			gwAddress, gwPort, gwId,
 		).Scan(&netId)
@@ -161,7 +161,7 @@ func main() {
 		var result *gorm.DB
 		// 查询网络是否存在，注意address如果采用别的看门狗可能不一定是ip（至少wifidog是ip）
 		var netId string
-		result = db.Exec(
+		result = db.Raw(
 			"SELECT id FROM net_info where id = ?",
 			gwId,
 		).Scan(&netId)
@@ -194,7 +194,7 @@ func main() {
 		// 用户是可以拿到token的，为了防止用户在多台设备使用相同mac，这里条件要加上mac
 		// 可以加上ip，伪造的可能性更小，但是如果切换vpn可能会导致断开
 		var connId int
-		result = db.Exec(
+		result = db.Raw(
 			"SELECT id FROM connection where token = ? and net_id = ? and ip = ? and mac = ? and is_expire = 0",
 			token, gwId, ip, mac,
 		).Scan(&connId)
