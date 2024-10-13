@@ -1,9 +1,9 @@
 ListenHost = "0.0.0.0"
 ListenPort = "8003"
 
-# 注意：这里的路径不要加'?'
-LoginScriptPath = "/wifidog/login"
-PortalScriptPath = "/wifidog/portal"
-MsgScriptPath = "/wifidog/message"
-PingScriptPath = "/wifidog/ping"
-AuthScriptPath = "/wifidog/auth"
+# 注意：这里的路径不要加'?'，看清楚对应的配置最后有没有'/'
+LoginScriptPath = "/wifidog/login/"
+PortalScriptPath = "/wifidog/portal/"
+MsgScriptPath = "/wifidog/gw_message.php"
+PingScriptPath = "/wifidog/ping/"
+AuthScriptPath = "/wifidog/auth/"

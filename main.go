@@ -46,6 +46,9 @@ func main() {
 	if db.Exec("UPDATE connection SET is_expire = 1 WHERE is_expire = 0").Error != nil {
 		log.Fatal("数据库测试连接失败")
 	}
+	if db.Raw("SELECT id FROM net_info").Error != nil {
+		log.Fatal("数据库测试连接失败")
+	}
 
 	// 面向user，登录页面
 	r.Handle("GET", conf.LoginScriptPath, func(context *gin.Context) {
