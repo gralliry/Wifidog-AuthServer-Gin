@@ -1,8 +1,9 @@
 ListenHost = "0.0.0.0"
 ListenPort = "8003"
 
-LoginScriptPathFragment = "/wifidog/login"
-PortalScriptPathFragment = "/wifidog/portal"
-MsgScriptPathFragment = "/wifidog/message"
-PingScriptPathFragment = "/wifidog/ping"
-AuthScriptPathFragment = "/wifidog/auth"
+# 注意：这里的路径不要加'?'
+LoginScriptPath = "/wifidog/login"
+PortalScriptPath = "/wifidog/portal"
+MsgScriptPath = "/wifidog/message"
+PingScriptPath = "/wifidog/ping"
+AuthScriptPath = "/wifidog/auth"

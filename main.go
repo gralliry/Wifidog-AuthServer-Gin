@@ -1,20 +1,3 @@
-/*
-https://freshman.tech/snippets/go/cross-compile-go-programs/
-debug | release | test
-*/
-
-//centos7
-////go:generate bash -c "GOOS=linux GOARCH=amd64 GIN_MODE=debug go build -o authserver"
-
-// windows11 // 注意：&&前面不能有空格
-////go:generate cmd /c "set GOOS=windows&& set GOARCH=amd64&& set GIN_MODE=debug&& go build -o authserver.exe"
-
-// darwin
-////go:generate bash -c "GOOS=darwin GOARCH=amd64 GIN_MODE=debug go build -o authserver"
-
-// openwrt
-//go:generate bash -c "envs GOOS=linux GOARCH=mipsle GOMIPS=softfloat go build -ldflags="-s -w" -o authserver"
-
 package main
 
 import (
@@ -34,11 +17,11 @@ var conf struct {
 	ListenHost string
 	ListenPort string
 	// 脚本路径
-	LoginScriptPathFragment  string
-	PortalScriptPathFragment string
-	MsgScriptPathFragment    string
-	PingScriptPathFragment   string
-	AuthScriptPathFragment   string
+	LoginScriptPath  string
+	PortalScriptPath string
+	MsgScriptPath    string
+	PingScriptPath   string
+	AuthScriptPath   string
 }
 
 func main() {
@@ -65,7 +48,7 @@ func main() {
 	}
 
 	// 面向user，登录页面
-	r.Handle("GET", conf.LoginScriptPathFragment, func(context *gin.Context) {
+	r.Handle("GET", conf.LoginScriptPath, func(context *gin.Context) {
 		// 网关信息
 		var (
 			gwAddress = context.Query("gw_address")
@@ -77,7 +60,7 @@ func main() {
 	})
 
 	// 面向user，登录请求
-	r.Handle("POST", conf.LoginScriptPathFragment, func(context *gin.Context) {
+	r.Handle("POST", conf.LoginScriptPath, func(context *gin.Context) {
 		var (
 			// 获取表单参数
 			username = context.PostForm("username")
@@ -138,7 +121,7 @@ func main() {
 	})
 
 	// 面向user，成功登录页面
-	r.Handle("GET", conf.PortalScriptPathFragment, func(context *gin.Context) {
+	r.Handle("GET", conf.PortalScriptPath, func(context *gin.Context) {
 		// 这个请求是wifidog重定向给用户的，本质是用户请求的，不用对其身份验证
 		var (
 			gwId = context.Query("gw_id")
@@ -148,7 +131,7 @@ func main() {
 	})
 
 	// 面向user，提示信息
-	r.Handle("GET", conf.MsgScriptPathFragment, func(context *gin.Context) {
+	r.Handle("GET", conf.MsgScriptPath, func(context *gin.Context) {
 		// 这个请求是wifidog重定向给用户的，本质是用户请求的，不用对其身份验证
 		var (
 			message = context.Query("message")
@@ -159,7 +142,7 @@ func main() {
 	})
 
 	// 面向Wifidog, Ping
-	r.Handle("GET", conf.PingScriptPathFragment, func(context *gin.Context) {
+	r.Handle("GET", conf.PingScriptPath, func(context *gin.Context) {
 		// 需要防止外部请求这个接口导致外部修改系统信息 todo
 		var (
 			gwId          = context.Query("gw_id")
@@ -189,7 +172,7 @@ func main() {
 	})
 
 	// 面向Wifidog, 验证Auth
-	r.Handle("GET", conf.AuthScriptPathFragment, func(context *gin.Context) {
+	r.Handle("GET", conf.AuthScriptPath, func(context *gin.Context) {
 		var (
 			stage    = context.Query("stage")
 			ip       = context.Query("ip")
