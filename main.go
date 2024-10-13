@@ -43,7 +43,7 @@ func main() {
 		log.Fatal("连接数据库时失败")
 	}
 	// 测试数据库 // 检查结果
-	if db.Raw("SELECT name FROM sqlite_master WHERE type='table'").Error != nil {
+	if db.Raw("UPDATE connection SET is_expire = 1 WHERE is_expire = 0").Error != nil {
 		log.Fatal("数据库测试连接失败")
 	}
 
@@ -55,8 +55,11 @@ func main() {
 			gwPort    = context.Query("gw_port")
 			gwId      = context.Query("gw_id")
 		)
-		context.Request.URL.RawQuery = fmt.Sprintf("gw_address=%s&gw_port=%s&gw_id=%s", gwAddress, gwPort, gwId)
-		context.HTML(http.StatusOK, "login.html", gin.H{})
+		context.HTML(http.StatusOK, "login.html", gin.H{
+			"gw_address": gwAddress,
+			"gw_port":    gwPort,
+			"gw_id":      gwId,
+		})
 	})
 
 	// 面向user，登录请求
@@ -87,8 +90,9 @@ func main() {
 			return
 		}
 		if result.RowsAffected == 0 {
-			context.Request.URL.RawQuery = fmt.Sprintf("message=%s", "账号不存在或密码错误")
-			context.HTML(http.StatusOK, "message.html", gin.H{})
+			context.HTML(http.StatusOK, "message.html", gin.H{
+				"message": "账号不存在或密码错误",
+			})
 			return
 		}
 		// 查询网络是否存在(可以分开两个，查询是否存在再查询是否匹配)
@@ -102,8 +106,9 @@ func main() {
 			return
 		}
 		if result.RowsAffected == 0 {
-			context.Request.URL.RawQuery = fmt.Sprintf("message=%s", "你正在连接的网络不受当前认证服务器管辖")
-			context.HTML(http.StatusOK, "message.html", gin.H{})
+			context.HTML(http.StatusOK, "message.html", gin.H{
+				"message": "你正在连接的网络不受当前认证服务器管辖",
+			})
 			return
 		}
 		// 更新用户信息
@@ -126,8 +131,9 @@ func main() {
 		var (
 			gwId = context.Query("gw_id")
 		)
-		context.Request.URL.RawQuery = fmt.Sprintf("gw_id=%s", gwId)
-		context.HTML(http.StatusOK, "portal.html", gin.H{})
+		context.HTML(http.StatusOK, "portal.html", gin.H{
+			"gw_id": gwId,
+		})
 	})
 
 	// 面向user，提示信息
@@ -137,8 +143,9 @@ func main() {
 			message = context.Query("message")
 		)
 		// denied
-		context.Request.URL.RawQuery = fmt.Sprintf("message=%s", message)
-		context.HTML(http.StatusOK, "message.html", gin.H{})
+		context.HTML(http.StatusOK, "message.html", gin.H{
+			"message": message,
+		})
 	})
 
 	// 面向Wifidog, Ping

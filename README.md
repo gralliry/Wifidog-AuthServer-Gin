@@ -17,7 +17,7 @@ cd Wifidog-Server-Gin
 ### Linux
 
 ```shell
-envs GOOS=linux GOARCH=amd64 GIN_MODE=debug go build -o authserver
+env GOOS=linux GOARCH=amd64 GIN_MODE=debug go build -o authserver
 ```
 
 ### windows
@@ -31,13 +31,13 @@ go build -o authserver.exe
 ### darwin(MacOS)
 
 ```shell
-envs GOOS=darwin GOARCH=amd64 GIN_MODE=debug go build -o authserver
+env GOOS=darwin GOARCH=amd64 GIN_MODE=debug go build -o authserver
 ```
 
 ### openwrt(linux-mipsel)
 
 ```shell
-envs GOOS=linux GOARCH=mipsle GOMIPS=softfloat go build -ldflags="-s -w" -o authserver
+env GOOS=linux GOARCH=mipsle GOMIPS=softfloat go build -ldflags="-s -w" -o authserver
 ```
 
 ## 使用
