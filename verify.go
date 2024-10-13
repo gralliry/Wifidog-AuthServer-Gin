@@ -137,15 +137,30 @@ func Verify(account string, password string) (bool, error) {
 		if err != nil {
 		}
 	}(resp.Body)
+	//
+	if resp.StatusCode != 302 {
+		return false, nil
+	}
+	if resp.Header.Get("Location") == "" {
+		return false, nil
+	}
+	return true, nil
+}
+
+/*
 	// 解析 HTML
 	doc, err = htmlquery.Parse(resp.Body)
 	if err != nil {
 		return false, err
 	}
+
+	var userInfo UserInfo
 	// 使用 XPath 选择器查找元素
-	node, err = htmlquery.Query(doc, "/html/body/div/div[1]/div[1]/div/div/div[1]/input[1]")
+	nodeName, err := htmlquery.Query(doc, "//*[@id=\"user_name\"]")
 	if err != nil {
 		return false, err
 	}
-	return node != nil, nil
-}
+	node, err = htmlquery.Query(doc, "//*[@id=\"user_name\"]")
+	node, err = htmlquery.Query(doc, "//*[@id=\"user_name\"]")
+	return userInfo, nil
+*/

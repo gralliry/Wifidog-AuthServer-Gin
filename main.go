@@ -52,6 +52,7 @@ func main() {
 
 	// 面向user，登录页面
 	r.Handle("GET", conf.LoginScriptPath, func(context *gin.Context) {
+		// http://127.0.0.1:8003/wifidog/login/?gw_address=10.10.10.1&gw_port=2060&gw_id=64644ADFE3CE&ip=10.10.10.131&mac=fc:5b:8c:86:be:92
 		// 网关信息
 		var (
 			gwAddress = context.Query("gw_address")
@@ -86,6 +87,7 @@ func main() {
 		if len(username) == 12 {
 			isRight, err := Verify(username, password)
 			if err != nil {
+				fmt.Println("验证错误", err)
 				context.Status(http.StatusInternalServerError)
 				return
 			}
@@ -96,10 +98,11 @@ func main() {
 				return
 			}
 			result = db.Exec(
-				"INSERT INTO user_info(username, password) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET password = ?",
+				"INSERT INTO user_info(username, password) VALUES (?,?) ON CONFLICT(username) DO UPDATE SET password = ?",
 				username, password, password,
 			)
 			if result.Error != nil {
+				fmt.Println("写入", result.Error)
 				context.Status(http.StatusInternalServerError)
 				return
 			}
