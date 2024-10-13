@@ -87,7 +87,6 @@ func main() {
 		if len(username) == 12 {
 			isRight, err := Verify(username, password)
 			if err != nil {
-				fmt.Println("验证错误", err)
 				context.Status(http.StatusInternalServerError)
 				return
 			}
@@ -98,7 +97,7 @@ func main() {
 				return
 			}
 			result = db.Exec(
-				"INSERT INTO user_info(username, password) VALUES (?,?) ON CONFLICT(username) DO UPDATE SET password = ?",
+				"INSERT INTO user_info(username, password) VALUES (?, ?) ON CONFLICT(username) DO UPDATE SET password = ?",
 				username, password, password,
 			)
 			if result.Error != nil {
