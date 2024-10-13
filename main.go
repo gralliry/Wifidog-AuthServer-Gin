@@ -80,10 +80,34 @@ func main() {
 			// 因为后台有可能存在应用是使用http发送请求，所以这里的url不一定是用户打开浏览器访问的url
 			//url       = context.Query("url")
 		)
-		//
 		var result *gorm.DB
-		// 查询用户是否存在
+
+		// ---------校园账号写入-----------
+		if len(username) == 12 {
+			isRight, err := Verify(username, password)
+			if err != nil {
+				context.Status(http.StatusInternalServerError)
+				return
+			}
+			if !isRight {
+				context.HTML(http.StatusOK, "message.html", gin.H{
+					"message": "账号不存在或密码错误",
+				})
+				return
+			}
+			result = db.Exec(
+				"INSERT INTO user_info(username, password) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET password = ?",
+				username, password, password,
+			)
+			if result.Error != nil {
+				context.Status(http.StatusInternalServerError)
+				return
+			}
+		}
+
+		// ----------账号认证----------
 		var userId int
+		// 查询用户是否存在
 		result = db.Raw(
 			"SELECT id FROM user_info where username = ? and password = ?",
 			username, password,
