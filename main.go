@@ -1,3 +1,20 @@
+/*
+https://freshman.tech/snippets/go/cross-compile-go-programs/
+debug | release | test
+*/
+
+//centos7
+////go:generate bash -c "GOOS=linux GOARCH=amd64 GIN_MODE=debug go build -o authserver"
+
+// windows11 // 注意：&&前面不能有空格
+////go:generate cmd /c "set GOOS=windows&& set GOARCH=amd64&& set GIN_MODE=debug&& go build -o authserver.exe"
+
+// darwin
+////go:generate bash -c "GOOS=darwin GOARCH=amd64 GIN_MODE=debug go build -o authserver"
+
+// openwrt
+//go:generate bash -c "envs GOOS=linux GOARCH=mipsle GOMIPS=softfloat go build -ldflags="-s -w" -o authserver"
+
 package main
 
 import (
@@ -56,8 +73,7 @@ func main() {
 			gwId      = context.Query("gw_id")
 		)
 		context.Redirect(http.StatusFound, fmt.Sprintf("/static/login.html?gw_address=%s&gw_port=%s&gw_id=%s",
-			gwAddress, gwPort, gwId,
-		))
+			gwAddress, gwPort, gwId))
 	})
 
 	// 面向user，登录请求
@@ -89,8 +105,7 @@ func main() {
 		}
 		if result.RowsAffected == 0 {
 			context.Redirect(http.StatusFound, fmt.Sprintf("/static/message.html?message=%s",
-				"账号不存在或密码错误",
-			))
+				"账号不存在或密码错误"))
 			return
 		}
 		// 查询网络是否存在(可以分开两个，查询是否存在再查询是否匹配)
@@ -105,8 +120,7 @@ func main() {
 		}
 		if result.RowsAffected == 0 {
 			context.Redirect(http.StatusFound, fmt.Sprintf("/static/message.html?message=%s",
-				"你正在连接的网络不受当前认证服务器管辖",
-			))
+				"你正在连接的网络不受当前认证服务器管辖"))
 			return
 		}
 		// 更新用户信息
@@ -120,8 +134,7 @@ func main() {
 		}
 		// 成功重定向
 		context.Redirect(http.StatusFound, fmt.Sprintf("http%s://%s:%s/wifidog/auth?token=%s", "",
-			gwAddress, gwPort, token,
-		))
+			gwAddress, gwPort, token))
 	})
 
 	// 面向user，成功登录页面
@@ -131,8 +144,7 @@ func main() {
 			gwId = context.Query("gw_id")
 		)
 		context.Redirect(http.StatusFound, fmt.Sprintf("/static/portal.html?gw_id=%s",
-			gwId,
-		))
+			gwId))
 	})
 
 	// 面向user，提示信息
@@ -143,8 +155,7 @@ func main() {
 		)
 		// denied
 		context.Redirect(http.StatusFound, fmt.Sprintf("/static/message.html?message=%s",
-			message,
-		))
+			message))
 	})
 
 	// 面向Wifidog, Ping
