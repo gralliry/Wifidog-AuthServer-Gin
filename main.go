@@ -35,6 +35,10 @@ func main() {
 	var r = gin.New()
 	// 设置模板文件的路径
 	r.LoadHTMLGlob("./pages/*.html")
+	err = r.SetTrustedProxies(nil)
+	if err != nil {
+		log.Fatal("信任代理错误")
+	}
 
 	// 连接到 SQLite 数据库文件
 	// 确保在函数退出时关闭数据库连接 log.Println("数据库关闭时发生了错误")
@@ -44,9 +48,6 @@ func main() {
 	}
 	// 测试数据库 // 检查结果
 	if db.Exec("UPDATE connection SET is_expire = 1 WHERE is_expire = 0").Error != nil {
-		log.Fatal("数据库测试连接失败")
-	}
-	if db.Raw("SELECT id FROM net_info").Error != nil {
 		log.Fatal("数据库测试连接失败")
 	}
 
