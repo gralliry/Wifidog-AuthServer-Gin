@@ -25,6 +25,7 @@ var conf struct {
 }
 
 func main() {
+	fmt.Println(Verify("202225310612", "cyyisyou107"))
 	_, err := toml.DecodeFile("config.toml", &conf)
 	if err != nil {
 		log.Fatal("配置读取失败")

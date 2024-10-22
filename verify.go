@@ -137,11 +137,13 @@ func Verify(account string, password string) (bool, error) {
 		if err != nil {
 		}
 	}(resp.Body)
-	//
-	if resp.StatusCode != 302 {
-		return false, nil
+	// 解析 HTML
+	doc, err = htmlquery.Parse(resp.Body)
+	if err != nil {
+		return false, err
 	}
-	if resp.Header.Get("Location") == "" {
+	_, err = htmlquery.Query(doc, "//*[@id=\"user_name\"]")
+	if err != nil {
 		return false, nil
 	}
 	return true, nil
