@@ -55,7 +55,7 @@ sqlite3 ./data/database.db
 ```
 ```sqlite
 -- `通用配置`->`设备ID`(一般是路由器mac地址，对应上你wifidog的配置页面内容即可)
-INSERT INTO net_info(id, address, port) VALUES ('设备ID', '认证服务器：主机名', '认证服务器：web服务端口')
+INSERT INTO net(id, address, port) VALUES ('设备ID', '认证服务器：主机名', '认证服务器：web服务端口')
 ```
 
 打开`认证服务器配置`：

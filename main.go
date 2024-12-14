@@ -25,7 +25,6 @@ var conf struct {
 }
 
 func main() {
-	fmt.Println(Verify("202225310612", "cyyisyou107"))
 	_, err := toml.DecodeFile("config.toml", &conf)
 	if err != nil {
 		log.Fatal("配置读取失败")
@@ -48,7 +47,7 @@ func main() {
 		log.Fatal("连接数据库时失败")
 	}
 	// 测试数据库 // 检查结果
-	if db.Exec("UPDATE connection SET is_expire = 1 WHERE is_expire = 0").Error != nil {
+	if db.Exec("UPDATE conn SET is_expire = 1 WHERE is_expire = 0").Error != nil {
 		log.Fatal("数据库测试连接失败")
 	}
 
@@ -85,35 +84,11 @@ func main() {
 		)
 		var result *gorm.DB
 
-		// ---------校园账号写入-----------
-		if len(username) == 12 {
-			isRight, err := Verify(username, password)
-			if err != nil {
-				context.Status(http.StatusInternalServerError)
-				return
-			}
-			if !isRight {
-				context.HTML(http.StatusOK, "message.html", gin.H{
-					"message": "账号不存在或密码错误",
-				})
-				return
-			}
-			result = db.Exec(
-				"INSERT INTO user_info(username, password) VALUES (?, ?) ON CONFLICT(username) DO UPDATE SET password = ?",
-				username, password, password,
-			)
-			if result.Error != nil {
-				fmt.Println("写入", result.Error)
-				context.Status(http.StatusInternalServerError)
-				return
-			}
-		}
-
 		// ----------账号认证----------
 		var userId int
 		// 查询用户是否存在
 		result = db.Raw(
-			"SELECT id FROM user_info where username = ? and password = ?",
+			"SELECT id FROM user where account = ? and password = ?",
 			username, password,
 		).Scan(&userId)
 		if result.Error != nil {
@@ -129,7 +104,7 @@ func main() {
 		// 查询网络是否存在(可以分开两个，查询是否存在再查询是否匹配)
 		var netId string
 		result = db.Raw(
-			"SELECT id FROM net_info where address = ? and port = ? and id = ?",
+			"SELECT id FROM net where address = ? and port = ? and id = ?",
 			gwAddress, gwPort, gwId,
 		).Scan(&netId)
 		if result.Error != nil {
@@ -145,7 +120,7 @@ func main() {
 		// 更新用户信息
 		var token = uuid.New().String()
 		result = db.Exec(
-			"INSERT INTO connection (token, user_id, net_id, ip, mac) VALUES (?, ?, ?, ?, ?)",
+			"INSERT INTO conn (token, user_id, net_id, ip, mac) VALUES (?, ?, ?, ?, ?)",
 			token, userId, netId, ip, mac,
 		)
 		if result.Error != nil || result.RowsAffected != 1 {
@@ -192,8 +167,9 @@ func main() {
 		var result *gorm.DB
 		// 查询网络是否存在，注意address如果采用别的看门狗可能不一定是ip（至少wifidog是ip）
 		var netId string
+
 		result = db.Raw(
-			"SELECT id FROM net_info where id = ?",
+			"SELECT id FROM net where id = ?",
 			gwId,
 		).Scan(&netId)
 		if result.Error != nil || result.RowsAffected != 1 {
@@ -203,7 +179,7 @@ func main() {
 		}
 		// 更新网络信息，忽略更新失败的情况
 		db.Exec(
-			"UPDATE net_info SET sys_uptime = ?, sys_memfree = ?, sys_load = ?, wifidog_uptime = ? WHERE id = ?",
+			"UPDATE net SET sys_uptime = ?, sys_memfree = ?, sys_load = ?, wifidog_uptime = ? WHERE id = ?",
 			sysUptime, sysMemfree, sysLoad, wifidogUptime, gwId,
 		)
 		context.String(http.StatusOK, "Pong")
@@ -226,7 +202,7 @@ func main() {
 		// 可以加上ip，伪造的可能性更小，但是如果切换vpn可能会导致断开
 		var connId int
 		result = db.Raw(
-			"SELECT id FROM connection where token = ? and net_id = ? and ip = ? and mac = ? and is_expire = 0",
+			"SELECT id FROM conn where token = ? and net_id = ? and ip = ? and mac = ? and is_expire = 0",
 			token, gwId, ip, mac,
 		).Scan(&connId)
 		if result.Error != nil {
@@ -242,7 +218,7 @@ func main() {
 		// 更新连接信息，忽略更新失败的情况
 		if stage == "login" {
 			result = db.Exec(
-				"UPDATE connection SET incoming = ?, outgoing = ?, start_time = ?, end_time = ? WHERE id = ?",
+				"UPDATE conn SET incoming = ?, outgoing = ?, start_time = ?, end_time = ? WHERE id = ?",
 				incoming, outgoing, timestamp, timestamp, connId,
 			)
 			if result.Error != nil {
@@ -258,7 +234,7 @@ func main() {
 			return
 		} else if stage == "counters" {
 			result = db.Exec(
-				"UPDATE connection SET incoming = ?, outgoing = ?, end_time = ? WHERE id = ?",
+				"UPDATE conn SET incoming = ?, outgoing = ?, end_time = ? WHERE id = ?",
 				incoming, outgoing, timestamp, connId,
 			)
 			if result.Error != nil {
@@ -275,7 +251,7 @@ func main() {
 		} else if stage == "logout" {
 			// 退出
 			db.Exec(
-				"UPDATE connection SET is_expire = 1 WHERE id = ?",
+				"UPDATE conn SET is_expire = 1 WHERE id = ?",
 				connId,
 			)
 			context.String(http.StatusOK, "Auth: 0")
