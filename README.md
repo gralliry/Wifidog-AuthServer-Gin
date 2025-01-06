@@ -17,7 +17,7 @@ cd Wifidog-Server-Gin
 ### Linux
 
 ```shell
-env GOOS=linux GOARCH=amd64 GIN_MODE=debug go build -o authserver
+env GOOS=linux GOARCH=amd64 GIN_MODE=debug go build -o out/authserver
 ```
 
 ### windows
@@ -26,18 +26,18 @@ env GOOS=linux GOARCH=amd64 GIN_MODE=debug go build -o authserver
 set GOOS=windows
 set GOARCH=amd64
 set GIN_MODE=debug
-go build -o authserver.exe
+go build -o out/authserver.exe
 ```
 ### darwin(MacOS)
 
 ```shell
-env GOOS=darwin GOARCH=amd64 GIN_MODE=debug go build -o authserver
+env GOOS=darwin GOARCH=amd64 GIN_MODE=debug go build -o out/authserver
 ```
 
 ### openwrt(linux-mipsel)
 
 ```shell
-env GOOS=linux GOARCH=mipsle GOMIPS=softfloat go build -ldflags="-s -w" -o authserver
+env GOOS=linux GOARCH=mipsle GOMIPS=softfloat go build -ldflags="-s -w" -o out/authserver
 ```
 
 ## 使用
@@ -55,7 +55,8 @@ sqlite3 ./data/database.db
 ```
 ```sqlite
 -- `通用配置`->`设备ID`(一般是路由器mac地址，对应上你wifidog的配置页面内容即可)
-INSERT INTO net(id, address, port) VALUES ('设备ID', '认证服务器：主机名', '认证服务器：web服务端口')
+INSERT INTO net(id, auth, address, port)
+VALUES ('设备ID', '', '认证服务器：主机名', '认证服务器：web服务端口')
 ```
 
 打开`认证服务器配置`：
@@ -74,13 +75,13 @@ INSERT INTO net(id, address, port) VALUES ('设备ID', '认证服务器：主机
 如果是路由器本身作为认证服务器，极力建议使用可执行文件（而不是使用go命令运行源码，其环境和程序占用都过大）
 
 ```shell
-./authserver
+./out/authserver
 ```
 
 如果路由器存在go语言环境，你也可以直接运行源码
 
 ```shell
-go run main.go
+go run ./main.go
 ```
 
 ## 问题
