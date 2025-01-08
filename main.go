@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/gin-gonic/gin"
@@ -9,13 +10,17 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
 
-var conf struct {
-	// 认证服务器
+var (
+	// ListenHost 认证服务器
 	ListenHost string
-	ListenPort string
+	ListenPort int
+)
+
+var conf struct {
 	// 脚本路径
 	LoginScriptPath  string
 	PortalScriptPath string
@@ -25,6 +30,11 @@ var conf struct {
 }
 
 func main() {
+	// 使用flag包解析参数
+	flag.StringVar(&ListenHost, "h", "0.0.0.0", "Host address")
+	flag.IntVar(&ListenPort, "p", 8003, "Port number")
+	// 解析命令行参数
+	flag.Parse()
 	_, err := toml.DecodeFile("config.toml", &conf)
 	if err != nil {
 		log.Fatal("配置读取失败")
@@ -33,10 +43,17 @@ func main() {
 	// 应该由编译或运行时指定
 	// 创建一个新的Gin引擎实例
 	var r = gin.New()
+	// 添加中间件来打印请求路径
+	r.Use(func(c *gin.Context) {
+		// 打印请求路径
+		fmt.Printf("Request path: %s\n", c.Request.URL.Path)
+		// 继续执行后续的中间件和路由处理函数
+		c.Next()
+	})
 	// 设置模板文件的路径
 	r.LoadHTMLGlob("./pages/*.html")
-	err = r.SetTrustedProxies(nil)
-	if err != nil {
+	// 设置代理
+	if r.SetTrustedProxies(nil) != nil {
 		log.Fatal("信任代理错误")
 	}
 
@@ -95,32 +112,32 @@ func main() {
 			context.Status(http.StatusInternalServerError)
 			return
 		}
-		if result.RowsAffected == 0 {
+		if result.RowsAffected != 1 {
 			context.HTML(http.StatusOK, "message.html", gin.H{
 				"message": "账号不存在或密码错误",
 			})
 			return
 		}
 		// 查询网络是否存在(可以分开两个，查询是否存在再查询是否匹配)
-		var netId string
+		var netId int
 		result = db.Raw(
-			"SELECT id FROM net where address = ? and port = ? and id = ?",
+			"SELECT id FROM net where address = ? and port = ? and sid = ?",
 			gwAddress, gwPort, gwId,
 		).Scan(&netId)
 		if result.Error != nil {
 			context.Status(http.StatusInternalServerError)
 			return
 		}
-		if result.RowsAffected == 0 {
+		if result.RowsAffected != 1 {
 			context.HTML(http.StatusOK, "message.html", gin.H{
 				"message": "你正在连接的网络不受当前认证服务器管辖",
 			})
 			return
 		}
-		// 更新用户信息
+		// 更新连接信息
 		var token = uuid.New().String()
 		result = db.Exec(
-			"INSERT INTO conn (token, user_id, net_id, ip, mac) VALUES (?, ?, ?, ?, ?)",
+			"INSERT INTO conn(token, user_id, net_id, ip, mac) VALUES (?, ?, ?, ?, ?)",
 			token, userId, netId, ip, mac,
 		)
 		if result.Error != nil || result.RowsAffected != 1 {
@@ -166,10 +183,9 @@ func main() {
 		)
 		var result *gorm.DB
 		// 查询网络是否存在，注意address如果采用别的看门狗可能不一定是ip（至少wifidog是ip）
-		var netId string
-
+		var netId int
 		result = db.Raw(
-			"SELECT id FROM net where id = ?",
+			"SELECT id FROM net where sid = ?",
 			gwId,
 		).Scan(&netId)
 		if result.Error != nil || result.RowsAffected != 1 {
@@ -180,7 +196,7 @@ func main() {
 		// 更新网络信息，忽略更新失败的情况
 		db.Exec(
 			"UPDATE net SET sys_uptime = ?, sys_memfree = ?, sys_load = ?, wifidog_uptime = ? WHERE id = ?",
-			sysUptime, sysMemfree, sysLoad, wifidogUptime, gwId,
+			sysUptime, sysMemfree, sysLoad, wifidogUptime, netId,
 		)
 		context.String(http.StatusOK, "Pong")
 	})
@@ -201,8 +217,11 @@ func main() {
 		// 用户是可以拿到token的，为了防止用户在多台设备使用相同mac，这里条件要加上mac
 		// 可以加上ip，伪造的可能性更小，但是如果切换vpn可能会导致断开
 		var connId int
-		result = db.Raw(
-			"SELECT id FROM conn where token = ? and net_id = ? and ip = ? and mac = ? and is_expire = 0",
+		result = db.Raw(`
+			SELECT conn.id FROM conn 
+    		LEFT JOIN net ON net.id = conn.net_id 
+			WHERE conn.token = ? and net.sid = ? and conn.ip = ? and conn.mac = ? and conn.is_expire = 0
+			`,
 			token, gwId, ip, mac,
 		).Scan(&connId)
 		if result.Error != nil {
@@ -213,6 +232,7 @@ func main() {
 			context.String(http.StatusOK, "Auth: 0")
 			return
 		}
+
 		// 当前时间戳（秒）
 		var timestamp = time.Now().Unix()
 		// 更新连接信息，忽略更新失败的情况
@@ -264,7 +284,7 @@ func main() {
 	})
 
 	// 启动服务，监听端口
-	err = r.Run(conf.ListenHost + ":" + conf.ListenPort)
+	err = r.Run(ListenHost + ":" + strconv.Itoa(ListenPort))
 	if err != nil {
 		log.Fatal("服务端启动失败")
 	}

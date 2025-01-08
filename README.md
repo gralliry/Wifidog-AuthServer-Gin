@@ -55,8 +55,8 @@ sqlite3 ./data/database.db
 ```
 ```sqlite
 -- `通用配置`->`设备ID`(一般是路由器mac地址，对应上你wifidog的配置页面内容即可)
-INSERT INTO net(id, auth, address, port)
-VALUES ('设备ID', '', '认证服务器：主机名', '认证服务器：web服务端口')
+INSERT INTO net(sid, address, port)
+VALUES ('设备ID', '认证服务器：主机名', '认证服务器：web服务端口')
 ```
 
 打开`认证服务器配置`：
@@ -91,3 +91,5 @@ go run ./main.go
 使用官方的sqlite3驱动是依赖CGO的，不适合低存储低内存的场景，这里使用了其他的sqlite驱动，但是该驱动并不支持`mipsel`的架构
 
 目前作者在寻找适配的、能快速部署的gcc编译器和sqlite驱动，如果你有好的想法可以在issue中提出建议，作者会一一回复
+
+nginx不要设置强制ssl，不然会发生301重定向，导致wifidog无法获取直接返回的结果

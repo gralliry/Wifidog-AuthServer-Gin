@@ -1,7 +1,4 @@
-ListenHost = "0.0.0.0"
-ListenPort = "8003"
-
-# 注意：这里的路径不要加'?'，看清楚对应的配置最后有没有'/'
+# 注意：这里的路径不要加'?'，看清楚对应的配置最后有没有'/', 强烈建议尾部不要添加任何'/'
 LoginScriptPath = "/wifidog/login/"
 PortalScriptPath = "/wifidog/portal/"
 MsgScriptPath = "/wifidog/gw_message.php"
