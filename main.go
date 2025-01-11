@@ -44,12 +44,14 @@ func main() {
 	// 创建一个新的Gin引擎实例
 	var r = gin.New()
 	// 添加中间件来打印请求路径
+	/*
 	r.Use(func(c *gin.Context) {
 		// 打印请求路径
 		fmt.Printf("Request path: %s\n", c.Request.URL.Path)
 		// 继续执行后续的中间件和路由处理函数
 		c.Next()
 	})
+	*/
 	// 设置模板文件的路径
 	r.LoadHTMLGlob("./pages/*.html")
 	// 设置代理
