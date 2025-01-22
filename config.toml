@@ -4,3 +4,5 @@ PortalScriptPath = "/wifidog/portal/"
 MsgScriptPath = "/wifidog/gw_message.php"
 PingScriptPath = "/wifidog/ping/"
 AuthScriptPath = "/wifidog/auth/"
+
+IsSSL = false
